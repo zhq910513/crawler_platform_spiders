@@ -1,0 +1,33 @@
+# -*- coding: utf-8 -*-
+# @Time    : 2022/3/25 16:07
+
+import sys
+
+MANAGER_HOST = ''
+CUR_HOST = '127.0.0.1'
+
+# MYSQL
+MYSQL_HOST = ''
+MYSQL_USER = ''
+MYSQL_PWD = ''
+MYSQL_PORT = 3306
+MYSQL_DB = ''
+
+# Redis 配置
+REDIS_HOST = ''
+REDIS_PWD = ''
+REDIS_PORT = 6379
+REDIS_DB = 0
+REDIS_PASS = ""
+
+# Mongo 配置
+MONGODB_HOST = CUR_HOST
+MONGODB_PORT = 27017
+MONGODB_USER = ''
+MONGODB_PWD = ''
+MONGODB_DB = ''
+MONGODB_POOL_SIZE = 10
+MONGODB_URL = f'mongodb://{MONGODB_HOST}'
+
+# 数据邮箱脱敏
+AES_SECRET_KEY = ''
