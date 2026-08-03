@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "app_name": "crawler_platform_spiders",
+  "version": "1.0.0",
+  "build_sha": "dev",
+  "image_digest": null,
+  "entries": [
+    {
+      "task_name": "system.health",
+      "description": "Validate runner, structured logs, cancellation and error propagation.",
+      "image_profile": "api",
+      "default_timeout_seconds": 60,
+      "required_resources": [],
+      "parameter_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "default": "health check passed",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "sleep_seconds": {
+            "default": 0.0,
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Sleep Seconds",
+            "type": "number"
+          },
+          "raise_login_error": {
+            "default": false,
+            "title": "Raise Login Error",
+            "type": "boolean"
+          }
+        },
+        "title": "HealthParameters",
+        "type": "object"
+      }
+    }
+  ]
+}
