@@ -1,1 +1,1 @@
-"""Concrete spider implementations live under this package."""
+"""具体平台爬虫业务代码放在本包下。"""

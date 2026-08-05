@@ -1,35 +1,39 @@
 from __future__ import annotations
 
-from pydantic import Field
+from crawler_foundation.core.exceptions import LoginError
+from crawler_foundation.core.result import TaskResult
+from spiders.common.decorators import platform_task
 
-from crawler_platform_spiders.context import TaskContext
-from crawler_platform_spiders.errors import AuthenticationError
-from crawler_platform_spiders.models import StrictModel, TaskResult
-from crawler_platform_spiders.registry import task
+TASK_DEFINITION = {
+    "definitionKey": "system_health",
+    "taskName": "系统健康检查",
+    "defaultParams": {"message": "health check passed"},
+    "suggestedCron": "",
+    "executionMode": "SINGLE",
+    "idempotencyPolicy": "IDEMPOTENT",
+    "resourceRequirements": {},
+    "requiredCapabilities": {"browser": False},
+    "runtimeMode": "SHARED_ENV_ISOLATED",
+    "taskGroup": "system",
+    "taskMaxConcurrency": 1,
+    "groupMaxConcurrency": 4,
+    "exclusiveMode": False,
+    "ioClass": "LOW",
+    "shmSizeMb": 64,
+    "logLimitMb": 20,
+    "resourceLocks": [],
+    "secretRefs": [],
+}
 
 
-class HealthParameters(StrictModel):
-    message: str = Field(default="health check passed", min_length=1, max_length=200)
-    sleep_seconds: float = Field(default=0.0, ge=0.0, le=10.0)
-    raise_login_error: bool = False
+@platform_task()
+def run(context, message: str = "health check passed", sleep_seconds: float = 0.0, raise_login_error: bool = False) -> TaskResult:
+    context.logger.info("健康检查开始", event="health_started")
+    if sleep_seconds:
+        import time
 
-
-@task(
-    "system.health",
-    description="Validate runner, structured logs, cancellation and error propagation.",
-    parameter_model=HealthParameters,
-    default_timeout_seconds=60,
-)
-def run(context: TaskContext) -> TaskResult:
-    params = context.parameters_as(HealthParameters)
-    context.logger.info("Health task started", event="health_started")
-    if params.sleep_seconds:
-        context.sleep(params.sleep_seconds)
-    if params.raise_login_error:
-        raise AuthenticationError(
-            "SYSTEM.LOGIN_FAILED",
-            "Simulated login failure",
-            retryable=False,
-        )
-    context.logger.info(params.message, event="health_completed")
-    return TaskResult.success(params.message, metrics={"healthy": True})
+        time.sleep(float(sleep_seconds))
+    if raise_login_error:
+        raise LoginError("模拟登录失败", code="SYSTEM.LOGIN_FAILED", retryable=False)
+    context.logger.info(message, event="health_completed")
+    return TaskResult.success(message, metrics={"healthy": True})

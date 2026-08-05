@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crawler-platform-spiders"
+version = "1.0.4"
+description = "Standard spider project foundation for crawler_platform."
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2.8,<3",
+  "requests>=2.32,<3",
+  "pymysql>=1.1,<2",
+  "redis>=5,<7",
+  "pymongo>=4.7,<5",
+  "oss2>=2.18,<3",
+  "python-dotenv>=1,<2",
+  "curl_cffi>=0.7,<1",
+]
+
+[project.scripts]
+crawler-platform-spiders = "crawler_foundation.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+py-modules = ["crawler_platform_spiders"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["crawler_foundation*", "crawler_runtime*", "spiders*", "open_api*", "plugins*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

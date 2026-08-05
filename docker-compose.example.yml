@@ -1,0 +1,17 @@
+services:
+  crawler-platform-spiders:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CRAWLER_RELEASE_VERSION: "1.0.4"
+        CRAWLER_BUILD_SHA: "local"
+    image: crawler_platform_spiders:1.0.4
+    env_file:
+      - .env.example
+    command: ["python", "-m", "crawler_runtime", "--entrypoint", "spiders.system.health:run", "--kwargs-json", "{\"message\":\"compose health ok\"}"]
+    volumes:
+      - ./runtime/work:/work
+      - ./runtime/logs:/logs
+      - ./runtime/cache:/cache
+      - ./runtime/profiles:/profiles
