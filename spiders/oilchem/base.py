@@ -55,10 +55,16 @@ class OilchemAccount:
         ).strip()
         password = str(data.get("password") or data.get("pwd") or os.getenv("OILCHEM_PASSWORD") or "").strip()
         token = str(data.get("token") or data.get("jwt") or os.getenv("OILCHEM_TOKEN") or "").strip()
+        cookie_secret_ref = str(data.get("cookieSecretRef") or data.get("cookie_secret_ref") or "").strip()
+        secret_env_name = ""
+        if cookie_secret_ref:
+            safe_ref = "".join(ch if ch.isalnum() else "_" for ch in cookie_secret_ref).upper()
+            secret_env_name = f"OILCHEM_SECRET_{safe_ref}"
         cookie_string = str(
             data.get("cookieString")
             or data.get("cookie_string")
             or data.get("cookie")
+            or (os.getenv(secret_env_name) if secret_env_name else "")
             or os.getenv("OILCHEM_COOKIE_STRING")
             or ""
         ).strip()

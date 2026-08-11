@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 
 from crawler_foundation.tasks.discovery import discover_tasks
 from crawler_foundation.tasks.registry import load_tasks
+from crawler_foundation.tasks.contract import validate_tasks_contract
 from scripts.sync_sch import render
 
 
@@ -24,6 +25,11 @@ def main() -> int:
     if actual_sch != expected_sch:
         raise RuntimeError("sch.py 与 spiders 下的完整任务定义不一致，请执行：python scripts/sync_sch.py --write")
     sch_tasks = load_tasks(sch_path)
+    contract_result = validate_tasks_contract(sch_tasks)
+    if contract_result["warnings"]:
+        for task_key, warnings in contract_result["warnings"].items():
+            for warning in warnings:
+                print(f"WARN {task_key}: {warning}")
     for task in sch_tasks:
         module = importlib.import_module(task["entryModule"])
         target = getattr(module, task.get("entryFunction") or "run")

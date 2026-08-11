@@ -16,6 +16,8 @@ TASK_DEFINITION = {
         "password": "",
         "token": "",
         "cookieString": "",
+        "cookieSecretRef": "",
+        "credentialKey": "oilchem_main",
         "captchaValidate": "",
         "captchaId": "a17cc715e78a4afc8c43cd85da9d7254",
         "target": "https://dc.oilchem.net/page/#/index",
@@ -37,6 +39,8 @@ TASK_DEFINITION = {
     "logLimitMb": 20,
     "resourceLocks": [],
     "secretRefs": ["oilchem_account"],
+    "allowOfflineRun": False,
+    "offlinePolicy": {"maxOfflineHours": 0, "reason": "登录校验默认不离线执行，避免 cookie 失效时重复请求。"},
 }
 
 
@@ -49,6 +53,10 @@ def run(
     token: str = "",
     cookieString: str = "",
     cookie_string: str = "",
+    cookieSecretRef: str = "",
+    cookie_secret_ref: str = "",
+    credentialKey: str = "",
+    credential_key: str = "",
     captchaValidate: str = "",
     captcha_validate: str = "",
     NECaptchaValidate: str = "",
@@ -71,6 +79,7 @@ def run(
         password=password,
         token=token,
         cookieString=cookieString or cookie_string,
+        cookieSecretRef=cookieSecretRef or cookie_secret_ref,
         captchaValidate=captchaValidate or captcha_validate or NECaptchaValidate or neCaptchaValidate or vcode,
         captchaId=captchaId or captcha_id,
         target=target or targetUrl,
@@ -78,6 +87,12 @@ def run(
     spider = OilchemBase(context, account=oilchem_account)
     try:
         data = spider.login(oilchem_account, check=bool(check), persist=bool(persist))
+        key = credentialKey or credential_key or oilchem_account.username or "oilchem_main"
+        context.accounts.report_success(platform_code="oilchem", credential_key=key, credential_name=oilchem_account.username or key, status_code="LOGIN_OK", message="oilchem 登录态有效", slot="login")
         return TaskResult.success("oilchem 登录校验成功", metrics={"checked": int(bool(check)), "persisted": int(bool(persist))}, data=data)
+    except Exception as exc:
+        key = credentialKey or credential_key or oilchem_account.username or "oilchem_main"
+        context.accounts.report_failure(platform_code="oilchem", credential_key=key, credential_name=oilchem_account.username or key, status_code="LOGIN_FAILED", message=str(exc), slot="login")
+        raise
     finally:
         spider.close()

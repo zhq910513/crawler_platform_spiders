@@ -9,6 +9,9 @@ from crawler_foundation import __version__
 from crawler_foundation.core.files import ensure_dir
 from crawler_foundation.core.json_utils import loads_dict, loads_list
 from crawler_foundation.core.logging import TaskLogger, create_logger
+from crawler_foundation.checkpoint import FileCheckpoint
+from crawler_foundation.accounts import AccountStatusReporter
+from crawler_foundation.core.config import RuntimeConfigResolver
 
 
 def _env(name: str, default: str = "") -> str:
@@ -69,6 +72,9 @@ class TaskContext:
     payload: dict[str, Any]
     dirs: RuntimeDirs
     logger: TaskLogger
+    checkpoint: FileCheckpoint
+    config: RuntimeConfigResolver
+    accounts: AccountStatusReporter
     extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -93,7 +99,8 @@ class TaskContext:
             "runId": run_id,
         }
         logger = create_logger(base_context=base_context, last_error_file=dirs.logs / f"{run_id}.last_error.json")
-        return cls(
+        checkpoint_path = dirs.cache / "checkpoints" / f"{company_id or 'company'}_{base_context['projectId'] or 'project'}_{task_code}.json"
+        context_obj = cls(
             run_id=run_id,
             company_id=base_context["companyId"],
             project_id=base_context["projectId"],
@@ -112,4 +119,9 @@ class TaskContext:
             payload=data,
             dirs=dirs,
             logger=logger,
+            checkpoint=FileCheckpoint(checkpoint_path),
+            config=RuntimeConfigResolver.from_env_payload(data),
+            accounts=None,  # type: ignore[arg-type]
         )
+        context_obj.accounts = AccountStatusReporter.from_context(context_obj)
+        return context_obj

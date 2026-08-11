@@ -1,4 +1,4 @@
-# crawler_platform_spiders 1.0.4
+# crawler_platform_spiders 1.0.3
 
 ## 目标
 
@@ -17,7 +17,7 @@
 - 新增 `docs/PLATFORM_SPIDER_STANDARD.md`：平台爬虫代码规范。
 - 增强 `MySQLClient.insert_rows()`，业务模块可安全传入目标表进行批量入库。
 - 修复 `crawler_foundation.tasks.discovery` 中任务定义非字面量时报错变量未初始化的问题。
-- 版本升级为 1.0.4。
+- 版本升级为 1.0.3。
 
 ## 验证
 

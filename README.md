@@ -2,7 +2,7 @@
 
 `crawler_platform_spiders` 是与 `crawler_platform` 配套的通用爬虫项目基建。公共层负责运行入口、任务发现、配置、日志、错误退出码、Docker 构建和平台 Agent 适配；具体平台爬虫后续只需要放入 `/spiders`，接口封装放入 `/open_api`。
 
-当前基建版本：`1.0.4`
+当前基建版本：`1.0.13`
 
 ## 核心目标
 
@@ -156,7 +156,7 @@ crawler_platform Agent 应向任务容器注入完整运行上下文。当前基
 
 ## Oilchem 平台规范样例
 
-1.0.4 已按标准结构新增 Oilchem：
+1.0.13 已按标准结构新增 Oilchem：
 
 ```text
 spiders/oilchem/
@@ -176,7 +176,7 @@ python -m crawler_platform_spiders run --task-code oilchem_login_check --kwargs-
 python -m crawler_platform_spiders run --task-code oilchem_login_check --kwargs-json '{"account":{"username":"账号","cookieString":"_member_user_tonken_=...;refpay=0"}}'
 ```
 
-1.0.4 开始支持按 HAR 复盘后的表单登录字段提交用户名密码，但必须额外传入网易易盾返回的 `NECaptchaValidate`：
+1.0.13 开始支持按 HAR 复盘后的表单登录字段提交用户名密码，但必须额外传入网易易盾返回的 `NECaptchaValidate`：
 
 ```bash
 python -m crawler_platform_spiders run --task-code oilchem_login_check --kwargs-json '{"account":{"username":"账号","password":"密码或32位MD5","captchaValidate":"网易易盾validate"},"persist":true}'
@@ -185,3 +185,53 @@ python -m crawler_platform_spiders run --task-code oilchem_login_check --kwargs-
 说明：`captchaValidate` 需要由浏览器、人工或合规打码服务提前取得。本基类不会在纯 requests 流程里伪造或绕过网易易盾。登录成功后会提取 `_member_user_tonken_`，并用 `dc.oilchem.net/ndc/common/getUserId` 做二次校验。
 
 后续 Oilchem 新业务只新增 `spiders/oilchem/<业务名>.py`，业务模块调用 `OilchemBase.login()` 获取已校验 session，然后自行解析和入库。
+
+## 与 crawler_platform 联通发布
+
+1.0.13 开始，推荐使用“CI/CD 构建一次镜像，平台注册一次版本，多台 Agent 拉同一个 digest 执行”的模式，不再建议每台服务器分别 `git pull && docker build`。
+
+本地或 CI 发布前复制配置：
+
+```bash
+cp .env.platform.example .env.platform
+```
+
+编辑 `.env.platform` 后执行：
+
+```bash
+bash scripts/build_and_register.sh
+```
+
+如果镜像已经由 CI 构建并取得 digest，可以只注册：
+
+```bash
+python scripts/platform_register.py --platform-url http://127.0.0.1:8000 --discovery-token xxx --company-id 1 --server-code agent-01 --image-repository registry.example.com/crawler_platform_spiders --image-digest sha256:0000000000000000000000000000000000000000000000000000000000000000 --release-version 1.0.13
+```
+
+多台设备执行时，代码和镜像仍然只发布一次。平台根据项目服务器池、任务指定服务器、Agent 标签、资源状态决定由哪台 Agent 拉取镜像并执行任务。
+
+完整说明见：`docs/PLATFORM_INTEGRATION.md`。
+
+## 1.0.13 账号状态公共组件
+
+1.0.13 新增 `crawler_foundation.accounts`，爬虫代码可以通过 `context.accounts.report_success/report_failure` 或旧项目兼容函数 `report_account_status` 上报账号状态。公共组件不读取公司账号缓存库，只上报标准事件。详见 `docs/ACCOUNT_STATUS_STANDARD.md`。
+
+## 1.0.13 爬虫项目标准契约 v1
+
+1.0.13 开始，爬虫项目按 `TASK_DEFINITION.platformCode / requiredConfigs / requiredCredentials / outputTables` 声明任务契约。账号组合通过 `context.accounts.get/list/lease/resolve/affinity/external_affinity` 调用，支持固定账号、多账号、账号池、规则匹配、对象首次成功后绑定账号，以及兼容外部公司缓存 `credential_key` 字段。详见 `docs/SPIDER_PROJECT_CONTRACT_V1.md`。
+
+## 1.0.13 爬虫开发标准库增强
+
+1.0.13 开始推荐所有新任务使用 `spiders.common.standard` 作为统一导入入口，优先选择 `StandardPageTask`、`StandardSubjectTask`、`StandardApiBase` 三类模板。新增任务可以直接使用：
+
+```bash
+python scripts/create_task.py --platform demo --definition-key demo_company_query --task-name 公司查询 --task-kind subject --subject-type company --table-name demo_company_info
+```
+
+开发完成后执行：
+
+```bash
+python scripts/sync_sch.py --write && python scripts/validate_tasks.py
+```
+
+详见 `docs/SPIDER_DEVELOPMENT_STANDARD_1.0.13.md`。

@@ -19,3 +19,6 @@ dist
 build
 *.egg-info
 README.local.md
+.release/
+crawler_manifest.json
+discovered-project.json

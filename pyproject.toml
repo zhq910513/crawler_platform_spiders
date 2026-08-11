@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crawler-platform-spiders"
-version = "1.0.4"
+version = "1.0.13"
 description = "Standard spider project foundation for crawler_platform."
 requires-python = ">=3.10"
 dependencies = [

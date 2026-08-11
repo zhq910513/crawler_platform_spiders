@@ -1,0 +1,67 @@
+name: Build and register crawler_platform_spiders
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      PIP_INDEX_URL: https://pypi.org/simple
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate spider project
+        run: python scripts/sync_sch.py --check && python scripts/validate_tasks.py && python -m compileall -q crawler_foundation crawler_platform_spiders.py crawler_runtime spiders open_api plugins scripts
+
+  release-register:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PROJECT_KEY: crawler_platform_spiders
+      PROJECT_CODE: crawler_platform_spiders
+      PROJECT_NAME: 通用爬虫项目基建
+      RELEASE_CHANNEL: stable
+      PIP_INDEX_URL: https://pypi.org/simple
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve immutable release version
+        id: release
+        shell: bash
+        run: release_version="${GITHUB_REF_NAME#v}"; test "$release_version" = "$(cat VERSION)"; echo "version=$release_version" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - id: meta
+        shell: bash
+        run: echo "image=${{ secrets.REGISTRY }}/${{ secrets.IMAGE_REPOSITORY }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.release.outputs.version }}
+          build-args: |
+            PIP_INDEX_URL=${{ env.PIP_INDEX_URL }}
+            CRAWLER_RELEASE_VERSION=${{ steps.release.outputs.version }}
+            CRAWLER_BUILD_SHA=${{ github.sha }}
+      - name: Register immutable project release to crawler_platform
+        env:
+          CRAWLER_PLATFORM_URL: ${{ secrets.CRAWLER_PLATFORM_URL }}
+          CRAWLER_PLATFORM_DISCOVERY_TOKEN: ${{ secrets.CRAWLER_PLATFORM_DISCOVERY_TOKEN }}
+          CRAWLER_PLATFORM_COMPANY_ID: ${{ secrets.CRAWLER_PLATFORM_COMPANY_ID }}
+          CRAWLER_PLATFORM_SERVER_CODES: ${{ secrets.CRAWLER_PLATFORM_SERVER_CODES }}
+          IMAGE_REPOSITORY: ${{ steps.meta.outputs.image }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+          GIT_BRANCH: ${{ github.ref_name }}
+          GIT_COMMIT: ${{ github.sha }}
+        run: python scripts/platform_register.py

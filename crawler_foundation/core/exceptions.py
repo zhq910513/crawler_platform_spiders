@@ -65,3 +65,38 @@ class UnknownSpiderError(CrawlerError):
 
 def exit_code_for_error(exc: BaseException) -> int:
     return getattr(exc, "exit_code", 90)
+
+class RequestRetryableError(NetworkError):
+    code = "SPIDER.REQUEST_RETRYABLE"
+    retryable = True
+    exit_code = 51
+
+
+class RequestFatalError(CrawlerError):
+    code = "SPIDER.REQUEST_FATAL"
+    retryable = False
+    exit_code = 52
+
+
+class AccountAuthError(LoginError):
+    code = "SPIDER.ACCOUNT_AUTH_ERROR"
+    retryable = False
+    exit_code = 31
+
+
+class AccountVerifyRequiredError(CaptchaOrRiskError):
+    code = "SPIDER.ACCOUNT_VERIFY_REQUIRED"
+    retryable = False
+    exit_code = 41
+
+
+class AccountRateLimitedError(CrawlerError):
+    code = "SPIDER.ACCOUNT_RATE_LIMITED"
+    retryable = True
+    exit_code = 42
+
+
+class StorageError(DatabaseError):
+    code = "SPIDER.STORAGE_ERROR"
+    retryable = True
+    exit_code = 61

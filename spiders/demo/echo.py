@@ -22,6 +22,8 @@ TASK_DEFINITION = {
     "logLimitMb": 20,
     "resourceLocks": [],
     "secretRefs": [],
+    "allowOfflineRun": False,
+    "offlinePolicy": {},
 }
 
 

@@ -20,3 +20,6 @@ profiles/
 *.sqlite3
 *.db
 .DS_Store
+.release/
+crawler_manifest.json
+discovered-project.json

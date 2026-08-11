@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from crawler_foundation.tasks.registry import REQUIRED_TASK_KEYS
+from crawler_foundation.tasks.contract import validate_task_contract
 
 EXCLUDED_DIRS = {"common", "__pycache__"}
 EXCLUDED_FILES = {"__init__.py"}
@@ -39,6 +40,13 @@ def _normalize_task(item: dict[str, Any], *, module_name: str, source_file: str,
     task.setdefault("entryModule", module_name)
     task.setdefault("entryFunction", "run")
     task.setdefault("sourceFile", source_file)
+    task.setdefault("platformCode", str(task.get("platformCode") or module_name.split(".")[1] if module_name.startswith("spiders.") else ""))
+    task.setdefault("requiredConfigs", [])
+    task.setdefault("requiredCredentials", [])
+    task.setdefault("outputTables", [])
+    task.setdefault("contractVersion", "1")
+    task.setdefault("allowOfflineRun", False)
+    task.setdefault("offlinePolicy", {})
     missing = sorted(REQUIRED_TASK_KEYS - set(task))
     if missing:
         raise RuntimeError(f"{source_file} 第 {index} 个任务定义缺少字段：{', '.join(missing)}")
@@ -85,6 +93,7 @@ def discover_tasks(root: str | Path = ".", spiders_dir: str | Path = "spiders") 
             if not isinstance(raw, dict):
                 raise RuntimeError(f"{source_file} 第 {index} 个任务定义必须是字典")
             task = _normalize_task(raw, module_name=module_name, source_file=source_file, index=index)
+            validate_task_contract(task)
             entry_function = str(task.get("entryFunction") or "run")
             if not _has_callable(tree, entry_function):
                 raise RuntimeError(f"{source_file} 缺少任务入口函数：{entry_function}")
