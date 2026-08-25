@@ -55,7 +55,7 @@ def test_manifest_matches_platform_contract() -> None:
         project_name="通用爬虫项目基建",
         image_repository="crawler_platform_spiders",
         image_digest="sha256:" + "1" * 64,
-        release_version="1.0.16",
+        release_version="1.0.17",
     )
     assert manifest["manifestVersion"] == "1"
     assert manifest["taskDefinitions"][0]["definitionKey"]
@@ -110,7 +110,7 @@ def test_installed_console_script_target_imports() -> None:
     from crawler_platform_spiders import __version__
 
     assert callable(main)
-    assert __version__ == "1.0.16"
+    assert __version__ == "1.0.17"
 
 
 def test_sch_can_be_generated_from_spider_static_definitions() -> None:
@@ -375,160 +375,10 @@ def test_oilchem_password_login_extracts_cookie_token_without_network(tmp_path: 
             pass
 
 
-def test_platform_register_dry_run_writes_manifest_and_request(tmp_path: Path) -> None:
-    manifest = tmp_path / "crawler_manifest.json"
-    request_file = tmp_path / "discovered-project.json"
-    digest = "sha256:" + "2" * 64
-    result = subprocess.run(
-        [
-            sys.executable,
-            "scripts/platform_register.py",
-            "--platform-url",
-            "http://crawler-platform.local",
-            "--discovery-token",
-            "secret-token",
-            "--company-id",
-            "7",
-            "--server-code",
-            "agent-a,agent-b",
-            "--image-repository",
-            "registry.local/crawler_platform_spiders",
-            "--image-digest",
-            digest,
-            "--release-version",
-            "1.0.16",
-            "--output-manifest",
-            str(manifest),
-            "--request-output",
-            str(request_file),
-            "--dry-run",
-        ],
-        cwd=str(ROOT),
-        text=True,
-        capture_output=True,
-        timeout=20,
-    )
-    assert result.returncode == 0, result.stderr + result.stdout
-    payload = json.loads(manifest.read_text(encoding="utf-8"))
-    assert payload["releaseVersion"] == "1.0.16"
-    assert payload["imageDigest"] == digest
-    request_payload = json.loads(request_file.read_text(encoding="utf-8"))
-    assert isinstance(request_payload, dict)
-    assert request_payload["serverCode"] == "agent-a"
-    assert request_payload["serverCodes"] == ["agent-a", "agent-b"]
-    assert request_payload["companyId"] == 7
-    assert request_payload["manifest"]["projectCode"] == "crawler_platform_spiders"
-
-
-def test_platform_register_posts_discovered_project_to_platform(tmp_path: Path) -> None:
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-    from threading import Thread
-
-    received: list[dict[str, object]] = []
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_POST(self):  # noqa: N802 - stdlib hook
-            length = int(self.headers.get("Content-Length", "0"))
-            body = self.rfile.read(length).decode("utf-8")
-            received.append({"path": self.path, "authorization": self.headers.get("Authorization"), "payload": json.loads(body)})
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b'{"code":200,"message":"success","data":{"ok":true}}')
-
-        def log_message(self, *args, **kwargs):  # noqa: D401
-            return
-
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        digest = "sha256:" + "3" * 64
-        result = subprocess.run(
-            [
-                sys.executable,
-                "scripts/platform_register.py",
-                "--platform-url",
-                f"http://127.0.0.1:{server.server_port}",
-                "--discovery-token",
-                "secret-token",
-                "--company-id",
-                "8",
-                "--server-code",
-                "agent-post",
-                "--image-repository",
-                "registry.local/crawler_platform_spiders",
-                "--image-digest",
-                digest,
-                "--release-version",
-                "1.0.16",
-                "--output-manifest",
-                str(tmp_path / "manifest.json"),
-                "--request-output",
-                str(tmp_path / "request.json"),
-            ],
-            cwd=str(ROOT),
-            text=True,
-            capture_output=True,
-            timeout=20,
-        )
+def test_passive_build_contract_shell_syntax() -> None:
+    for script in ["scripts/build_and_register.sh", "scripts/platform_build_contract.sh"]:
+        result = subprocess.run(["bash", "-n", script], cwd=str(ROOT), text=True, capture_output=True, timeout=20)
         assert result.returncode == 0, result.stderr + result.stdout
-        assert len(received) == 1
-        item = received[0]
-        assert item["path"] == "/api/v1/discovered-projects"
-        assert item["authorization"] == "Discovery secret-token"
-        payload = item["payload"]
-        assert payload["companyId"] == 8
-        assert payload["serverCode"] == "agent-post"
-        assert payload["serverCodes"] == ["agent-post"]
-        assert payload["manifest"]["imageDigest"] == digest
-        assert payload["manifest"]["releaseVersion"] == "1.0.16"
-        assert payload["manifest"]["taskDefinitions"]
-    finally:
-        server.shutdown()
-        server.server_close()
-
-
-def test_build_and_register_shell_syntax() -> None:
-    result = subprocess.run(["bash", "-n", "scripts/build_and_register.sh"], cwd=str(ROOT), text=True, capture_output=True, timeout=20)
-    assert result.returncode == 0, result.stderr + result.stdout
-
-
-def test_platform_register_release_only_payload_has_no_server_code(tmp_path: Path) -> None:
-    request_file = tmp_path / "discovered-project-release-only.json"
-    digest = "sha256:" + "4" * 64
-    result = subprocess.run(
-        [
-            sys.executable,
-            "scripts/platform_register.py",
-            "--platform-url",
-            "http://crawler-platform.local",
-            "--discovery-token",
-            "secret-token",
-            "--company-id",
-            "9",
-            "--image-repository",
-            "registry.local/crawler_platform_spiders",
-            "--image-digest",
-            digest,
-            "--release-version",
-            "1.0.16",
-            "--request-output",
-            str(request_file),
-            "--dry-run",
-        ],
-        cwd=str(ROOT),
-        text=True,
-        capture_output=True,
-        timeout=20,
-    )
-    assert result.returncode == 0, result.stderr + result.stdout
-    payload = json.loads(request_file.read_text(encoding="utf-8"))
-    assert payload["companyId"] == 9
-    assert "serverCode" not in payload
-    assert "serverCodes" not in payload
-    assert payload["manifest"]["releaseVersion"] == "1.0.16"
-    assert payload["manifest"]["imageDigest"] == digest
 
 
 def test_context_checkpoint_and_offline_policy_fields(tmp_path: Path) -> None:

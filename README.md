@@ -2,7 +2,7 @@
 
 `crawler_platform_spiders` 是与 `crawler_platform` 配套的通用爬虫项目基建。公共层负责运行入口、任务发现、配置、日志、错误退出码、Docker 构建和平台 Agent 适配；具体平台爬虫后续只需要放入 `/spiders`，接口封装放入 `/open_api`。
 
-当前基建版本：`1.0.16`
+当前基建版本：`1.0.17`
 
 ## 核心目标
 
@@ -188,29 +188,43 @@ python -m crawler_platform_spiders run --task-code oilchem_login_check --kwargs-
 
 ## 与 crawler_platform 联通发布
 
-1.0.16 开始，推荐使用“CI/CD 构建一次镜像，平台注册一次版本，多台 Agent 拉同一个 digest 执行”的模式，不再建议每台服务器分别 `git pull && docker build`。
+1.0.17 起，`crawler_platform_spiders` 回归为**平台被动构建发现标准包**：爬虫项目不主动 CI/CD，不保存平台 Token，不主动注册 Release。
 
-本地或 CI 发布前复制配置：
-
-```bash
-cp .env.platform.example .env.platform
-```
-
-编辑 `.env.platform` 后执行：
+平台构建中心 / 构建执行器在隔离构建环境中调用本仓库稳定命令：
 
 ```bash
-bash scripts/build_and_register.sh
+bash scripts/platform_build_contract.sh
 ```
 
-如果镜像已经由 CI 构建并取得 digest，可以只注册：
+该脚本只做：
 
-```bash
-python scripts/platform_register.py --platform-url http://127.0.0.1:8000 --discovery-token xxx --company-id 1 --server-code agent-01 --image-repository registry.example.com/crawler_platform_spiders --image-digest sha256:0000000000000000000000000000000000000000000000000000000000000000 --release-version 1.0.16
+```text
+Discovery
+Contract Validation
+Python compile
+Manifest 生成
 ```
 
-多台设备执行时，代码和镜像仍然只发布一次。平台根据项目服务器池、任务指定服务器、Agent 标签、资源状态决定由哪台 Agent 拉取镜像并执行任务。
+它不会：
 
-完整说明见：`docs/PLATFORM_INTEGRATION.md`。
+```text
+推送镜像
+调用 crawler_platform API
+读取平台密钥
+写入生产调度事实
+```
+
+标准发布职责划分：
+
+```text
+crawler_platform
+  负责拉取代码、注入构建变量、构建镜像、推送镜像、登记 Release、计算 Manifest Diff、激活 Release。
+
+crawler_platform_spiders
+  负责稳定 Runtime Shell、业务 TASK_DEFINITION、无副作用 Discovery、Contract Validation、Manifest 生成。
+```
+
+完整说明见：`docs/PASSIVE_PLATFORM_BUILD_CONTRACT_1.0.17.md`。
 
 ## 1.0.16 账号状态公共组件
 
@@ -235,43 +249,3 @@ python scripts/sync_sch.py --write && python scripts/validate_tasks.py
 ```
 
 详见 `docs/SPIDER_DEVELOPMENT_STANDARD_1.0.13.md`。
-
-## 1.0.16 外部 CI Release 注册标准
-
-1.0.16 起，默认使用外部 CI 构建镜像并向 `crawler_platform` 注册 Release。平台构建中心未就绪时，不允许把 Git 仓库地址直接推进到平台内构建。
-
-标准 workflow：
-
-```text
-.github/workflows/crawler-platform-spider-release.yml
-```
-
-项目归属建议写入：
-
-```text
-crawler_project.json.companyCode
-```
-
-可从示例复制：
-
-```bash
-cp crawler_project.example.json crawler_project.json
-```
-
-然后把 `companyCode` 改为平台公司编码，并在 GitHub Secrets/Variables 中配置：
-
-```text
-CRAWLER_CONTROL_BASE_URL
-CRAWLER_DISCOVERY_TOKEN
-CRAWLER_REGISTRY_HOST
-CRAWLER_REGISTRY_NAMESPACE
-CRAWLER_IMAGE_REPOSITORY
-```
-
-HTTP 私有镜像仓库需要额外设置：
-
-```text
-CRAWLER_REGISTRY_INSECURE=true
-```
-
-详见 `docs/EXTERNAL_CI_RELEASE_REGISTRATION_1.0.16.md`。

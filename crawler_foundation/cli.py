@@ -13,7 +13,6 @@ from crawler_foundation.core.config import load_dotenv
 from crawler_foundation.core.json_utils import write_json
 from crawler_foundation.tasks.registry import build_manifest, load_tasks, resolve_task
 from crawler_runtime.__main__ import main as runtime_main
-from crawler_foundation.platform.register import cli_main as register_cli_main
 
 
 def _git(args: list[str]) -> str:
@@ -35,8 +34,6 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--task-code", required=True)
     run.add_argument("--kwargs-json", default="{}")
     run.add_argument("--env-file", default=".env")
-    register = sub.add_parser("register", help="Register project release to crawler_platform")
-    register.add_argument("args", nargs=argparse.REMAINDER, help="arguments passed to scripts/platform_register.py")
     return parser
 
 
@@ -71,11 +68,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         task = resolve_task(Path(args.sch), args.task_code)
         entrypoint = f"{task['entryModule']}:{task.get('entryFunction') or 'run'}"
         return runtime_main(["--entrypoint", entrypoint, "--kwargs-json", args.kwargs_json])
-    if args.command == "register":
-        register_args = list(args.args)
-        if register_args and register_args[0] == "--":
-            register_args = register_args[1:]
-        return register_cli_main(register_args)
     return 2
 
 
