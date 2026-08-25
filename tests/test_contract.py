@@ -55,7 +55,7 @@ def test_manifest_matches_platform_contract() -> None:
         project_name="通用爬虫项目基建",
         image_repository="crawler_platform_spiders",
         image_digest="sha256:" + "1" * 64,
-        release_version="1.0.13",
+        release_version="1.0.15",
     )
     assert manifest["manifestVersion"] == "1"
     assert manifest["taskDefinitions"][0]["definitionKey"]
@@ -110,7 +110,7 @@ def test_installed_console_script_target_imports() -> None:
     from crawler_platform_spiders import __version__
 
     assert callable(main)
-    assert __version__ == "1.0.13"
+    assert __version__ == "1.0.15"
 
 
 def test_sch_can_be_generated_from_spider_static_definitions() -> None:
@@ -396,7 +396,7 @@ def test_platform_register_dry_run_writes_manifest_and_request(tmp_path: Path) -
             "--image-digest",
             digest,
             "--release-version",
-            "1.0.13",
+            "1.0.15",
             "--output-manifest",
             str(manifest),
             "--request-output",
@@ -410,7 +410,7 @@ def test_platform_register_dry_run_writes_manifest_and_request(tmp_path: Path) -
     )
     assert result.returncode == 0, result.stderr + result.stdout
     payload = json.loads(manifest.read_text(encoding="utf-8"))
-    assert payload["releaseVersion"] == "1.0.13"
+    assert payload["releaseVersion"] == "1.0.15"
     assert payload["imageDigest"] == digest
     request_payload = json.loads(request_file.read_text(encoding="utf-8"))
     assert isinstance(request_payload, dict)
@@ -461,7 +461,7 @@ def test_platform_register_posts_discovered_project_to_platform(tmp_path: Path) 
                 "--image-digest",
                 digest,
                 "--release-version",
-                "1.0.13",
+                "1.0.15",
                 "--output-manifest",
                 str(tmp_path / "manifest.json"),
                 "--request-output",
@@ -482,7 +482,7 @@ def test_platform_register_posts_discovered_project_to_platform(tmp_path: Path) 
         assert payload["serverCode"] == "agent-post"
         assert payload["serverCodes"] == ["agent-post"]
         assert payload["manifest"]["imageDigest"] == digest
-        assert payload["manifest"]["releaseVersion"] == "1.0.13"
+        assert payload["manifest"]["releaseVersion"] == "1.0.15"
         assert payload["manifest"]["taskDefinitions"]
     finally:
         server.shutdown()
@@ -512,7 +512,7 @@ def test_platform_register_release_only_payload_has_no_server_code(tmp_path: Pat
             "--image-digest",
             digest,
             "--release-version",
-            "1.0.13",
+            "1.0.15",
             "--request-output",
             str(request_file),
             "--dry-run",
@@ -527,7 +527,7 @@ def test_platform_register_release_only_payload_has_no_server_code(tmp_path: Pat
     assert payload["companyId"] == 9
     assert "serverCode" not in payload
     assert "serverCodes" not in payload
-    assert payload["manifest"]["releaseVersion"] == "1.0.13"
+    assert payload["manifest"]["releaseVersion"] == "1.0.15"
     assert payload["manifest"]["imageDigest"] == digest
 
 
