@@ -39,6 +39,8 @@ def main() -> int:
         repository_url=os.getenv("REPOSITORY_URL", git(["git", "config", "--get", "remote.origin.url"])),
         git_branch=os.getenv("GIT_BRANCH", git(["git", "rev-parse", "--abbrev-ref", "HEAD"])),
         git_commit=os.getenv("GIT_COMMIT", git(["git", "rev-parse", "--short=12", "HEAD"])),
+        company_code=os.getenv("CRAWLER_COMPANY_CODE", os.getenv("COMPANY_CODE", "")),
+        supported_arch=os.getenv("SUPPORTED_ARCH", os.getenv("CRAWLER_SUPPORTED_ARCH", "linux/amd64")),
     )
     Path(args.output).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(args.output)

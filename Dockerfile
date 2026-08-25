@@ -1,7 +1,7 @@
 FROM python:3.12-slim AS runtime
 
 ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
-ARG CRAWLER_RELEASE_VERSION=1.0.15
+ARG CRAWLER_RELEASE_VERSION=1.0.16
 ARG CRAWLER_BUILD_SHA=unknown
 ARG CRAWLER_IMAGE_DIGEST=
 

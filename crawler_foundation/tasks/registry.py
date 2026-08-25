@@ -64,8 +64,8 @@ def resolve_task(path: str | Path, definition_key: str) -> dict[str, Any]:
     raise KeyError(f"未找到任务定义：{definition_key}")
 
 
-def build_manifest(*, tasks: list[dict[str, Any]], project_key: str, project_code: str, project_name: str, image_repository: str, image_digest: str, release_version: str, release_channel: str = "stable", repository_url: str = "", git_branch: str = "", git_commit: str = "") -> dict[str, Any]:
-    return {
+def build_manifest(*, tasks: list[dict[str, Any]], project_key: str, project_code: str, project_name: str, image_repository: str, image_digest: str, release_version: str, release_channel: str = "stable", repository_url: str = "", git_branch: str = "", git_commit: str = "", company_code: str = "", supported_arch: str = "") -> dict[str, Any]:
+    manifest = {
         "manifestVersion": "1",
         "projectKey": project_key,
         "projectCode": project_code,
@@ -80,3 +80,8 @@ def build_manifest(*, tasks: list[dict[str, Any]], project_key: str, project_cod
         "runtimeType": "python",
         "taskDefinitions": tasks,
     }
+    if company_code:
+        manifest["companyCode"] = company_code
+    if supported_arch:
+        manifest["supportedArch"] = supported_arch
+    return manifest

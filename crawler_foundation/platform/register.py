@@ -56,7 +56,9 @@ def _platform_endpoint(platform_url: str) -> str:
 
 
 def _server_payload(company_id: int, manifest: dict[str, Any], server_codes: list[str]) -> dict[str, Any]:
-    payload: dict[str, Any] = {"companyId": company_id, "manifest": manifest}
+    payload: dict[str, Any] = {"manifest": manifest}
+    if company_id > 0:
+        payload["companyId"] = company_id
     if server_codes:
         payload["serverCodes"] = server_codes
         payload["serverCode"] = server_codes[0]
@@ -96,7 +98,8 @@ def _post_json(url: str, payload: dict[str, Any], *, discovery_token: str, timeo
 class RegisterOptions:
     platform_url: str
     discovery_token: str
-    company_id: int
+    company_id: int = 0
+    company_code: str = ""
     server_codes: list[str] = field(default_factory=list)
     project_key: str = "crawler_platform_spiders"
     project_code: str = "crawler_platform_spiders"
@@ -114,6 +117,7 @@ class RegisterOptions:
     request_output: str = ".release/discovered-project.json"
     dry_run: bool = False
     timeout: int = 30
+    supported_arch: str = "linux/amd64"
 
 
 def build_manifest_from_options(options: RegisterOptions) -> dict[str, Any]:
@@ -134,6 +138,8 @@ def build_manifest_from_options(options: RegisterOptions) -> dict[str, Any]:
         repository_url=options.repository_url,
         git_branch=options.git_branch,
         git_commit=options.git_commit,
+        company_code=options.company_code,
+        supported_arch=options.supported_arch,
     )
 
 
@@ -142,8 +148,10 @@ def _validate_options(options: RegisterOptions) -> None:
         raise RuntimeError("缺少平台地址：请传 --platform-url 或设置 CRAWLER_PLATFORM_URL")
     if not options.discovery_token:
         raise RuntimeError("缺少 Discovery token：请传 --discovery-token 或设置 CRAWLER_PLATFORM_DISCOVERY_TOKEN")
-    if options.company_id <= 0:
-        raise RuntimeError("companyId 必须大于 0")
+    if options.company_id <= 0 and not options.company_code:
+        raise RuntimeError("缺少项目归属：请传 --company-id，或传 --company-code / 设置 CRAWLER_COMPANY_CODE")
+    if options.company_code and not re.match(r"^[A-Za-z0-9_.-]{2,100}$", options.company_code):
+        raise RuntimeError("companyCode 只允许字母、数字、下划线、点和横线，长度 2-100")
     # serverCodes is optional for crawler_platform >= 1.0.13.  CI/CD should
     # register one immutable release first; operators then decide which Agent
     # nodes join the project server pool in the platform UI.  Supplying
@@ -167,7 +175,7 @@ def register_project_release(options: RegisterOptions) -> list[dict[str, Any]]:
     payload = _server_payload(options.company_id, manifest, server_codes)
     write_json(options.request_output, payload)
     if options.dry_run:
-        return [{"dryRun": True, "serverCodes": server_codes, "releaseOnly": not bool(server_codes), "taskCount": len(manifest.get("taskDefinitions") or [])}]
+        return [{"dryRun": True, "companyId": options.company_id or None, "companyCode": options.company_code or manifest.get("companyCode") or None, "serverCodes": server_codes, "releaseOnly": not bool(server_codes), "taskCount": len(manifest.get("taskDefinitions") or [])}]
     endpoint = _platform_endpoint(options.platform_url)
     return [_post_json(endpoint, payload, discovery_token=options.discovery_token, timeout=options.timeout)]
 
@@ -178,6 +186,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--platform-url", default="")
     parser.add_argument("--discovery-token", default="")
     parser.add_argument("--company-id", type=int, default=0)
+    parser.add_argument("--company-code", default="", help="project owner companyCode for crawler_platform >= 1.0.87 external CI registration")
     parser.add_argument("--server-code", action="append", default=[], help="optional initial Agent/server code hint; can be repeated or comma separated")
     parser.add_argument("--project-key", default="")
     parser.add_argument("--project-code", default="")
@@ -194,6 +203,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-manifest", default=".release/crawler_manifest.json")
     parser.add_argument("--request-output", default=".release/discovered-project.json")
     parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--supported-arch", default="")
     parser.add_argument("--dry-run", action="store_true")
     return parser
 
@@ -206,6 +216,7 @@ def options_from_args(argv: Sequence[str] | None = None) -> RegisterOptions:
         platform_url=args.platform_url or _env("CRAWLER_PLATFORM_URL", "PLATFORM_URL"),
         discovery_token=args.discovery_token or _env("CRAWLER_PLATFORM_DISCOVERY_TOKEN", "DISCOVERY_TOKEN"),
         company_id=args.company_id or int(_env("CRAWLER_PLATFORM_COMPANY_ID", "COMPANY_ID", default="0")),
+        company_code=args.company_code or _env("CRAWLER_COMPANY_CODE", "COMPANY_CODE"),
         server_codes=_split_server_codes(raw_server_codes),
         project_key=args.project_key or _env("PROJECT_KEY", default="crawler_platform_spiders"),
         project_code=args.project_code or _env("PROJECT_CODE", default="crawler_platform_spiders"),
@@ -223,6 +234,7 @@ def options_from_args(argv: Sequence[str] | None = None) -> RegisterOptions:
         request_output=args.request_output,
         dry_run=bool(args.dry_run),
         timeout=args.timeout,
+        supported_arch=args.supported_arch or _env("CRAWLER_SUPPORTED_ARCH", "SUPPORTED_ARCH", default="linux/amd64"),
     )
 
 

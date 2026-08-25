@@ -1,0 +1,6 @@
+{
+  "companyCode": "replace_with_company_code_from_crawler_platform",
+  "projectCode": "crawler_platform_spiders",
+  "projectName": "通用爬虫项目基建",
+  "releaseChannel": "stable"
+}
