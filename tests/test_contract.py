@@ -55,7 +55,7 @@ def test_manifest_matches_platform_contract() -> None:
         project_name="通用爬虫项目基建",
         image_repository="crawler_platform_spiders",
         image_digest="sha256:" + "1" * 64,
-        release_version="1.0.17",
+        release_version="1.0.18",
     )
     assert manifest["manifestVersion"] == "1"
     assert manifest["taskDefinitions"][0]["definitionKey"]
@@ -110,7 +110,7 @@ def test_installed_console_script_target_imports() -> None:
     from crawler_platform_spiders import __version__
 
     assert callable(main)
-    assert __version__ == "1.0.17"
+    assert __version__ == "1.0.18"
 
 
 def test_sch_can_be_generated_from_spider_static_definitions() -> None:

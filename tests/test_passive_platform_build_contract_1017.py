@@ -40,7 +40,7 @@ def test_passive_build_contract_script_generates_manifest(tmp_path: Path) -> Non
             "PROJECT_NAME": "通用爬虫项目基建",
             "IMAGE_REPOSITORY": "registry.local/crawler_platform_spiders",
             "IMAGE_DIGEST": "sha256:" + "8" * 64,
-            "RELEASE_VERSION": "1.0.17",
+            "RELEASE_VERSION": "1.0.18",
             "GIT_COMMIT": "pytest-passive-build",
         }
     )
@@ -55,7 +55,7 @@ def test_passive_build_contract_script_generates_manifest(tmp_path: Path) -> Non
     assert result.returncode == 0, result.stderr + result.stdout
     assert "PASSIVE_BUILD_CONTRACT_OK" in result.stdout
     payload = json.loads(output.read_text(encoding="utf-8"))
-    assert payload["releaseVersion"] == "1.0.17"
+    assert payload["releaseVersion"] == "1.0.18"
     assert payload["imageDigest"] == "sha256:" + "8" * 64
     assert payload["taskDefinitions"]
 

@@ -2,7 +2,7 @@
 
 `crawler_platform_spiders` 是与 `crawler_platform` 配套的通用爬虫项目基建。公共层负责运行入口、任务发现、配置、日志、错误退出码、Docker 构建和平台 Agent 适配；具体平台爬虫后续只需要放入 `/spiders`，接口封装放入 `/open_api`。
 
-当前基建版本：`1.0.17`
+当前基建版本：`1.0.18`
 
 ## 核心目标
 
